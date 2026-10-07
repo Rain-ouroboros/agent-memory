@@ -51,3 +51,19 @@ class FeedbackTests(unittest.TestCase):
             path = Path(temp)/'memory.sqlite'
             with Store(path): pass
             self.assertEqual(path.stat().st_mode & 0o777, 0o600)
+
+
+class InitializationTests(unittest.TestCase):
+    def test_failed_initialization_always_closes_connection(self):
+        import sqlite3
+        from unittest.mock import MagicMock, patch
+        for failure_at in range(3):
+            with self.subTest(failure_at=failure_at):
+                connection = MagicMock()
+                cursor = MagicMock()
+                cursor.fetchone.return_value = (0,)
+                connection.execute.side_effect = [cursor] * failure_at + [sqlite3.DatabaseError('synthetic init error')]
+                with patch('agent_memory.store.connect', return_value=connection):
+                    with self.assertRaises(sqlite3.DatabaseError):
+                        Store()
+                connection.close.assert_called_once_with()

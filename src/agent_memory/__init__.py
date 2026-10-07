@@ -9,7 +9,7 @@ from .store import ConflictError, FeedbackReceipt, Store
 __all__ = ['ConflictError', 'FeedbackReceipt', 'Context', 'Evidence', 'Hit', 'Maintenance', 'Model',
            'ModelOutput', 'Recall', 'Record', 'Source', 'SourceRef', 'Store',
            'context', 'derive', 'ingest', 'maintain', 'recall', 'resolve_evidence', 'summarize']
-__version__ = '0.1.0'
+__version__ = '0.1.1'
 
 from .canonical import CanonicalReadAdapter, ReadResult, SnapshotError
 __all__ += ["CanonicalReadAdapter", "ReadResult", "SnapshotError"]

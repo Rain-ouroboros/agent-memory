@@ -34,14 +34,14 @@ Use it with coding assistants, research agents, support agents, or a custom agen
 | Maintenance | Expiry dry runs and explicit retirement; deterministic consolidation proposals |
 | Integration | Source/model protocols and Rain-authored read adapter for existing canonical stores |
 
-Version **0.1.0** is an initial extraction and adaptation. It is not a drop-in reader for Rain's private storage, and it does not claim measured improvements in recall or answer quality.
+Version **0.1.1** is an initial extraction and adaptation. It is not a drop-in reader for Rain's private storage, and it does not claim measured improvements in recall or answer quality.
 
 ## Quickstart
 
 Python 3.11 or newer. No runtime dependencies. Install from the repository; this distribution is not published to PyPI.
 
 ```bash
-python -m pip install "git+https://github.com/Rain-ouroboros/agent-memory.git@v0.1.0"
+python -m pip install "git+https://github.com/Rain-ouroboros/agent-memory.git@v0.1.1"
 ```
 
 ```python

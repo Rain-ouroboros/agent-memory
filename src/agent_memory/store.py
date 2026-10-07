@@ -30,16 +30,20 @@ class Store:
     def __init__(self, path: str | Path = ':memory:'):
         self._lock = threading.RLock()
         self._db = connect(path)
-        self._db.execute('PRAGMA foreign_keys = ON')
-        version = self._db.execute('PRAGMA user_version').fetchone()[0]
-        if version not in (0, 1):
-            self._db.close(); raise ValueError(f'unsupported database schema {version}')
-        with self._db:
-            self._db.execute('CREATE TABLE IF NOT EXISTS records (namespace TEXT NOT NULL, id TEXT NOT NULL, revision INTEGER NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(namespace,id))')
-            self._db.execute('CREATE TABLE IF NOT EXISTS history (namespace TEXT NOT NULL, id TEXT NOT NULL, revision INTEGER NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(namespace,id,revision))')
-            self._db.execute('CREATE TABLE IF NOT EXISTS edges (namespace TEXT NOT NULL, source TEXT NOT NULL, relation TEXT NOT NULL, target TEXT NOT NULL, record_id TEXT NOT NULL, revision INTEGER NOT NULL, weight REAL NOT NULL, PRIMARY KEY(namespace,source,relation,target,record_id), FOREIGN KEY(namespace,record_id) REFERENCES records(namespace,id))')
-            self._db.execute('CREATE TABLE IF NOT EXISTS feedback (namespace TEXT NOT NULL, operation_id TEXT NOT NULL, record_id TEXT NOT NULL, command TEXT NOT NULL, outcome TEXT NOT NULL, revision INTEGER NOT NULL, PRIMARY KEY(namespace,operation_id))')
-            self._db.execute('PRAGMA user_version = 1')
+        try:
+            self._db.execute('PRAGMA foreign_keys = ON')
+            version = self._db.execute('PRAGMA user_version').fetchone()[0]
+            if version not in (0, 1):
+                raise ValueError(f'unsupported database schema {version}')
+            with self._db:
+                self._db.execute('CREATE TABLE IF NOT EXISTS records (namespace TEXT NOT NULL, id TEXT NOT NULL, revision INTEGER NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(namespace,id))')
+                self._db.execute('CREATE TABLE IF NOT EXISTS history (namespace TEXT NOT NULL, id TEXT NOT NULL, revision INTEGER NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(namespace,id,revision))')
+                self._db.execute('CREATE TABLE IF NOT EXISTS edges (namespace TEXT NOT NULL, source TEXT NOT NULL, relation TEXT NOT NULL, target TEXT NOT NULL, record_id TEXT NOT NULL, revision INTEGER NOT NULL, weight REAL NOT NULL, PRIMARY KEY(namespace,source,relation,target,record_id), FOREIGN KEY(namespace,record_id) REFERENCES records(namespace,id))')
+                self._db.execute('CREATE TABLE IF NOT EXISTS feedback (namespace TEXT NOT NULL, operation_id TEXT NOT NULL, record_id TEXT NOT NULL, command TEXT NOT NULL, outcome TEXT NOT NULL, revision INTEGER NOT NULL, PRIMARY KEY(namespace,operation_id))')
+                self._db.execute('PRAGMA user_version = 1')
+        except BaseException:
+            self._db.close()
+            raise
 
     def close(self):
         with self._lock:

@@ -66,4 +66,4 @@ This adapter does not fold an append log, authenticate the supplied audience, ad
 
 ## Supported surface
 
-Python 3.11+ and standard-library SQLite. Optional indexing requires FTS5 in the Python SQLite build. The core has no framework, model, network or environment-variable dependency and performs no work merely by import. Windows, macOS and Linux are CI targets. Coding and research integrations use synthetic sources; real framework certification, scale benchmarks, encryption, embedding providers, physical erasure and a lossless legacy migration are outside 0.1.0.
+Python 3.11+ and standard-library SQLite. Optional indexing requires FTS5 in the Python SQLite build. The core has no framework, model, network or environment-variable dependency and performs no work merely by import. Windows, macOS and Linux are CI targets. Coding and research integrations use synthetic sources; real framework certification, scale benchmarks, encryption, embedding providers, physical erasure and a lossless legacy migration are outside 0.1.1.
