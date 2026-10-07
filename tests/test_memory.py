@@ -1,4 +1,5 @@
 import json
+from contextlib import closing
 import math
 from dataclasses import replace
 from pathlib import Path
@@ -200,7 +201,7 @@ class MemoryTests(unittest.TestCase):
             path = Path(temp) / 'broken.sqlite'; path.write_text('not a database')
             with self.assertRaises(sqlite3.DatabaseError): Store(path)
             path2 = Path(temp) / 'future.sqlite'
-            with sqlite3.connect(path2) as db: db.execute('PRAGMA user_version=99')
+            with closing(sqlite3.connect(path2)) as db: db.execute('PRAGMA user_version=99')
             with self.assertRaises(ValueError): Store(path2)
 
     def test_invalid_metadata_rejected(self):
