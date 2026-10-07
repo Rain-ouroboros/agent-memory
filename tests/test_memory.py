@@ -51,7 +51,7 @@ class MemoryTests(unittest.TestCase):
             errors = []
             def write(worker):
                 try:
-                    with Store(path) as store:
+                    with Store(path, timeout=30) as store:
                         for n in range(20):
                             store.put(Record.create(f'worker {worker} record {n}'))
                 except Exception as error:

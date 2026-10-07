@@ -20,9 +20,9 @@ class IndexReceipt:
 
 
 class SearchIndex:
-    def __init__(self, path: str | Path = ':memory:'):
+    def __init__(self, path: str | Path = ':memory:', *, timeout: float = 5):
         self._lock = threading.RLock()
-        self._db = connect(path)
+        self._db = connect(path, timeout=timeout)
         try:
             with self._db:
                 self._db.execute("CREATE VIRTUAL TABLE IF NOT EXISTS memory_fts USING fts5(text, id UNINDEXED, namespace UNINDEXED, revision UNINDEXED, tokenize='unicode61 remove_diacritics 2')")

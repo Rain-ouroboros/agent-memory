@@ -67,3 +67,28 @@ class InitializationTests(unittest.TestCase):
                     with self.assertRaises(sqlite3.DatabaseError):
                         Store()
                 connection.close.assert_called_once_with()
+
+
+class BusyTimeoutTests(unittest.TestCase):
+    def test_zero_timeout_fails_on_contention_then_reopens_without_data_loss(self):
+        import sqlite3
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp)/'memory.sqlite'
+            with Store(path) as store:
+                saved = store.put(Record.create('Committed observation'))
+            blocker = sqlite3.connect(path)
+            try:
+                blocker.execute('BEGIN IMMEDIATE')
+                with self.assertRaises(sqlite3.OperationalError): Store(path, timeout=0)
+            finally:
+                blocker.rollback(); blocker.close()
+            with Store(path, timeout=0) as store:
+                self.assertEqual(store.get(saved.id), saved)
+
+    def test_invalid_timeout_is_rejected_before_creating_file(self):
+        import math
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp)/'memory.sqlite'
+            for value in [-1, math.inf, math.nan]:
+                with self.assertRaises(ValueError): Store(path, timeout=value)
+                self.assertFalse(path.exists())

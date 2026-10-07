@@ -27,9 +27,9 @@ class FeedbackReceipt:
 
 class Store:
     """One connection per instance; SQLite coordinates independent writers."""
-    def __init__(self, path: str | Path = ':memory:'):
+    def __init__(self, path: str | Path = ':memory:', *, timeout: float = 5):
         self._lock = threading.RLock()
-        self._db = connect(path)
+        self._db = connect(path, timeout=timeout)
         try:
             self._db.execute('PRAGMA foreign_keys = ON')
             version = self._db.execute('PRAGMA user_version').fetchone()[0]
