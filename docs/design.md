@@ -10,7 +10,7 @@ A `Record` separates text, source, explicit author, source trust, audience, name
 
 `Store.put` compares the expected revision inside `BEGIN IMMEDIATE`. New records expect zero. The default expected revision is `record.revision`. A mismatch raises `ConflictError`; it is never silently merged. Each successful write updates the current row and appends its immutable historical revision in the same SQLite transaction. Independent connections use SQLite's locking with a five-second busy timeout by default. Hosts can configure `Store(path, timeout=...)` and `SearchIndex(path, timeout=...)` in seconds; zero means fail immediately on contention. Busy timeout errors propagate without losing already committed records. The concurrent-write test uses a 30-second deadline to accommodate slow hosted Windows disks. Operational and corruption errors propagate.
 
-The database schema version is 1. Unknown schema versions fail explicitly. There is no automatic schema migration or Rain backup importer. An ingestion batch and a maintenance run consist of individual atomic record writes; failures can leave earlier successful writes in place.
+The database schema version is 1. Unknown schema versions fail explicitly. There is no automatic schema migration or agent-specific backup importer. An ingestion batch and a maintenance run consist of individual atomic record writes; failures can leave earlier successful writes in place.
 
 ## Evidence and permissions
 
@@ -26,7 +26,7 @@ A recall is a snapshot, not a delivery authorization lease. Concurrent changes a
 
 ## Retrieval
 
-Base recall uses the lexical term matcher and query-centered excerpt logic extracted from Rain. Stop words and a small transliteration table cover Russian and English. Russian inflection uses a prefix heuristic; Latin identifiers remain literal. Dotted versions are kept whole. One or two query terms require all matches; longer queries require at least half, never fewer than two. All-stopword queries return no hits.
+Base recall uses the lexical term matcher and query-centered excerpt logic extracted from an agent runtime. Stop words and a small transliteration table cover Russian and English. Russian inflection uses a prefix heuristic; Latin identifiers remain literal. Dotted versions are kept whole. One or two query terms require all matches; longer queries require at least half, never fewer than two. All-stopword queries return no hits.
 
 Ranking combines lexical overlap, exponential confidence decay and hyperbolic recency. Decay periods are **e-folding time constants**, not half-lives. Confidence is a heuristic ranking value, not a calibrated probability of truth. The current implementation scans the selected namespace in memory; it is not designed or benchmarked for very large stores.
 
@@ -46,13 +46,13 @@ The `Source` and `Model` protocols impose no provider dependencies. `ingest` exp
 
 `maintain` inspects expired active records; dry run is the default. Applying the result retires each candidate through revision-checked writes. A conflict raises an error. Retirement and history retention are not physical erasure.
 
-`propose_consolidation` adapts Rain's deterministic same-kind greedy Jaccard clustering (threshold 0.7). It considers complete, trusted, derived records, partitions them by effective audience, and returns unpersisted source-bound proposals. Primary speech and already consolidated records are excluded. At most 500 eligible candidates are processed by default; exceeding the cap raises rather than silently truncating. The algorithm can mistake negated sentences for duplicates. Host review is required; no source is automatically removed or retired, and confidence is not increased.
+`propose_consolidation` adapts deterministic same-kind greedy Jaccard clustering (threshold 0.7). It considers complete, trusted, derived records, partitions them by effective audience, and returns unpersisted source-bound proposals. Primary speech and already consolidated records are excluded. At most 500 eligible candidates are processed by default; exceeding the cap raises rather than silently truncating. The algorithm can mistake negated sentences for duplicates. Host review is required; no source is automatically removed or retired, and confidence is not increased.
 
 `classify_kind` is a small rule-based classifier, not a semantic extractor. `redact_secret_like` is an optional regex helper for known secret shapes, not a privacy guarantee. Apply a host-specific capture policy if raw secrets must never be stored; applying this helper after persistence does not remove historical data.
 
 ## Feedback
 
-`Store.feedback` adapts Rain's revision-bound feedback design. Each command contains a record ID, expected integer revision, namespace, operation ID and outcome. The receipt and record/history revision are committed in the same SQLite transaction. Replaying the same command returns its original receipt with `duplicate=True`, including after restart or retirement; reusing its operation ID for a different command raises `ConflictError`.
+`Store.feedback` implements revision-bound feedback. Each command contains a record ID, expected integer revision, namespace, operation ID and outcome. The receipt and record/history revision are committed in the same SQLite transaction. Replaying the same command returns its original receipt with `duplicate=True`, including after restart or retirement; reusing its operation ID for a different command raises `ConflictError`.
 
 Outcomes are `helpful`, `irrelevant`, `incorrect` and `retract`. The first two only record an observation, without increasing confidence or inventing usage. The latter two retire the record. Any new feedback revision conservatively invalidates derived records bound to the older revision. There is a 64-receipt per-record cap; additional commands fail instead of discarding old idempotency keys. Feedback is a privileged host write and does not turn an answer-level outcome into a verdict about every retrieved memory. Correction uses a normal revision-checked `Store.put`; automatic supersession is not implemented.
 
@@ -60,7 +60,7 @@ New database files are created with owner-only permissions on POSIX systems. Exi
 
 ## Existing stores
 
-Rain's `CanonicalReadAdapter` works with host callbacks for latest canonical rows, metadata projection, revision identity, eligibility and exact-revision authorization. It materializes the snapshot to detect duplicate IDs before returning data. Unknown scopes deny. Callback errors propagate. Returned values are deep copies. Callbacks are trusted integration code, not instructions supplied by memory text.
+`CanonicalReadAdapter` works with host callbacks for latest canonical rows, metadata projection, revision identity, eligibility and exact-revision authorization. It materializes the snapshot to detect duplicate IDs before returning data. Unknown scopes deny. Callback errors propagate. Returned values are deep copies. Callbacks are trusted integration code, not instructions supplied by memory text.
 
 This adapter does not fold an append log, authenticate the supplied audience, add missing provenance or lock an external store. Its input must be an already folded, consistent latest-revision snapshot. It is a useful seam for an existing store; it is not a storage migration by itself.
 

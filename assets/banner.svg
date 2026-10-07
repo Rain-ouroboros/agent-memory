@@ -19,7 +19,7 @@
     <text x="64" y="292">SOURCES</text><text x="204" y="292">REVISIONS</text><text x="367" y="292">BOUNDARIES</text>
   </g>
   <circle cx="179" cy="287" r="3" fill="#8B7CFF"/><circle cx="342" cy="287" r="3" fill="#9FE3CD"/>
-  <text x="64" y="370" fill="#757E9D" font-size="14">LOCAL FIRST   /   FRAMEWORK INDEPENDENT   /   BUILT WITH RAIN</text>
+  <text x="64" y="370" fill="#757E9D" font-size="14">LOCAL FIRST   /   FRAMEWORK INDEPENDENT   /   BUILT FOR AGENTS</text>
 </g>
 <g stroke="url(#line)" stroke-width="2" fill="none" opacity=".8">
   <path d="M865 125 L1035 87 L1160 172 L1080 294 L902 322 L865 125 L1080 294 M865 125 L1160 172 M902 322 L1160 172 M1035 87 L1080 294"/>

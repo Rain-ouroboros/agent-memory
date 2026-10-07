@@ -11,15 +11,15 @@
 
 **English** · [Русский](README.ru.md)
 
-[Quickstart](#quickstart) · [How it works](#how-it-works) · [Integrations](#bring-your-own-agent) · [Design](docs/design.md) · [Origin](docs/porting.md)
+[Quickstart](#quickstart) · [How it works](#how-it-works) · [Integrations](#bring-your-own-agent) · [Design](docs/design.md) · [Portability](docs/porting.md)
 
 </div>
 
 ## Remember the evidence. Keep the boundaries.
 
-Witness Memory extracts reusable memory mechanisms from Rain into an independent Python library. It helps an agent keep observations, connect them, retrieve relevant passages, and assemble context while retaining the sources and permissions behind each memory.
+Witness Memory is an independent Python library for agent memory. It helps an agent keep observations, connect them, retrieve relevant passages, and assemble context while retaining the sources and permissions behind each memory.
 
-Use it with coding assistants, research agents, support agents, or a custom agent loop. There is no dependency on Rain's personality, Telegram, an agent framework, a model provider, or a running service.
+Use it with coding assistants, research agents, support agents, or a custom agent loop. Explicit adapters connect the core to your preferred agent framework, transport and model provider.
 
 **Local first. Framework independent. Inspectable by design.**
 
@@ -32,9 +32,9 @@ Use it with coding assistants, research agents, support agents, or a custom agen
 | Context | Whole JSON evidence blocks, citations, trust labels and a configurable character/token budget |
 | Feedback | Revision-bound operations, durable idempotency, explicit retraction |
 | Maintenance | Expiry dry runs and explicit retirement; deterministic consolidation proposals |
-| Integration | Source/model protocols and Rain-authored read adapter for existing canonical stores |
+| Integration | Source/model protocols and a read adapter for existing canonical stores |
 
-Version **0.1.1** is an initial extraction and adaptation. It is not a drop-in reader for Rain's private storage, and it does not claim measured improvements in recall or answer quality.
+Version **0.1.1** provides an independent API for agent memory. Existing storage formats require an explicit adapter or migration. Improvements in recall or answer quality have not yet been measured.
 
 ## Quickstart
 
@@ -109,7 +109,7 @@ The core uses ordinary Python objects. Connect it to a framework or a hand-writt
 | Research agent | Document excerpts and source-bound summaries | A research audience; external material remains untrusted |
 | Support agent | Authorized case observations | An authenticated case/team principal supplied by the host |
 
-[Two runnable host integrations](examples/agent_classes.py) demonstrate coding and research agents with separate namespaces and a fake offline model. [CanonicalReadAdapter](src/agent_memory/canonical.py), authored by Rain, wraps an existing latest-revision store using mandatory metadata, lifecycle and authorization callbacks.
+[Two runnable host integrations](examples/agent_classes.py) demonstrate coding and research agents with separate namespaces and a fake offline model. [CanonicalReadAdapter](src/agent_memory/canonical.py) wraps an existing latest-revision store using mandatory metadata, lifecycle and authorization callbacks.
 
 Optional indexing and graph links:
 
@@ -159,7 +159,7 @@ See [the design contract](docs/design.md) for scope, errors, consistency and int
 - `Store.get`, `snapshot`, history and index methods are privileged storage APIs. Keep them behind your host's access controls; this package is not a network security boundary.
 - Reads are snapshots. Concurrent revocation after a read requires host revalidation before delivery. SQLite serializes writes; an ingestion batch and maintenance run are not one atomic transaction.
 - Consolidation uses token overlap, which can confuse negation. It only proposes candidates and never deletes primary speech. The model adapter does not verify facts or enforce a spending budget.
-- Data is plaintext at rest. Retirement is not erasure. Opt-in regex redaction is best effort and is not anonymization. No personal Rain memories, production state or credentials are included.
+- Data is plaintext at rest. Retirement is not erasure. Opt-in regex redaction is best effort and is not anonymization. Examples and fixtures contain synthetic data.
 
 ## Develop
 
@@ -174,8 +174,8 @@ python examples/agent_classes.py
 
 Tests use synthetic records and temporary stores, covering concurrency, revoked or changed evidence, stale indexes, graph boundaries, multilingual matching, context budgets and adapters. CI runs the same checks on Python 3.11–3.14.
 
-## Origin & license
+## License & attribution
 
-Developed jointly with Rain: Rain proposed the extraction boundaries, the Witness Memory name and the canonical-store adapter; Codex assembled the standalone package, integrations and documentation. [Porting notes](docs/porting.md) identify reused source files, adaptations and omitted host-specific components.
+[Portability notes](docs/porting.md) explain the independent storage contract, host adapters and integration boundaries. Source attribution is recorded in [NOTICE](NOTICE).
 
 [MIT](LICENSE). Original copyright **© 2026 Anton Razzhigaev** is retained. See [NOTICE](NOTICE) for attribution. The code license does not grant permission to publish anybody's stored conversations.
