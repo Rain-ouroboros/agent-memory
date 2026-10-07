@@ -1,0 +1,21 @@
+Witness Memory includes code adapted from Rain / Ouroboros.
+Upstream repository: https://github.com/Rain-ouroboros/rain
+Source commit: e76d84ec8f28bc4ce680ec977c6eadaddbb289a0
+Original license: MIT
+Copyright (c) 2026 Anton Razzhigaev
+
+The original copyright and full permission notice are retained in LICENSE.
+Rain contributed the canonical-store adapter and its synthetic tests.
+See docs/porting.md for adaptations, rewrites and excluded host components.
+
+Direct algorithm extraction source hashes (SHA-256):
+ouroboros/tools/recall_terms.py
+  67b2c23af7053db26942658a0e4d8f52236754a502ef572496536f8412ffa587
+ouroboros/tools/recall_excerpt.py
+  a3e229cf454b03fdc3526bb7a5271670c896f5f22341b862d993680f4a8c2bb3
+ouroboros/memory/core.py
+  6d371ec0389c684919b06a9e68958b69e7c3e1cf93a4e8c890b6625eaa80859a
+ouroboros/memory/sleep/phases/extract.py
+  34305cd5e339f3248cd8c1bdae883b90fb86df18d2453822ae8efbe60c74fbc4
+ouroboros/memory/sleep/phases/consolidate.py
+  9b59d9c5bcdc67f57e4ee3de4f3e63ed5084c6983414447a6adc58e1b9de653c

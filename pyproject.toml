@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "witness-agent-memory"
+version = "0.1.0"
+description = "Agent memory with sources, revisions, and boundaries"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+license-files = ["LICENSE", "NOTICE"]
+authors = [{name = "Rain and contributors"}]
+keywords = ["agents", "memory", "provenance", "retrieval", "sqlite"]
+classifiers = ["Programming Language :: Python :: 3", "Topic :: Scientific/Engineering :: Artificial Intelligence"]
+
+[project.urls]
+Repository = "https://github.com/Rain-ouroboros/agent-memory"
+Documentation = "https://github.com/Rain-ouroboros/agent-memory/blob/main/docs/design.md"
+Issues = "https://github.com/Rain-ouroboros/agent-memory/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]

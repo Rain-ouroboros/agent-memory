@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="420" viewBox="0 0 1280 420" role="img" aria-labelledby="title desc">
+<title id="title">Witness Memory</title>
+<desc id="desc">Память агентов с источниками, ревизиями и границами. Граф свидетельств на тёмном фоне.</desc>
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#11152B"/><stop offset="1" stop-color="#080D19"/></linearGradient>
+  <linearGradient id="line"><stop stop-color="#8B7CFF"/><stop offset="1" stop-color="#9FE3CD"/></linearGradient>
+  <radialGradient id="glow"><stop stop-color="#5546A3" stop-opacity=".3"/><stop offset="1" stop-color="#5546A3" stop-opacity="0"/></radialGradient>
+  <pattern id="dots" width="28" height="28" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="1" fill="#ADB1CB" opacity=".1"/></pattern>
+</defs>
+<rect width="1280" height="420" rx="24" fill="url(#bg)"/>
+<rect width="1280" height="420" rx="24" fill="url(#dots)"/>
+<ellipse cx="1040" cy="190" rx="330" ry="280" fill="url(#glow)"/>
+<g font-family="Inter,Segoe UI,Arial,sans-serif">
+  <rect x="64" y="56" width="190" height="30" rx="15" fill="#9FE3CD" opacity=".12"/>
+  <text x="80" y="76" fill="#9FE3CD" font-size="12" font-weight="600" letter-spacing="1.5">ОТКРЫТЫЙ КОД · MIT</text>
+  <text x="60" y="171" fill="#F4F5FF" font-size="66" font-weight="700" letter-spacing="-2">Witness Memory</text>
+  <text x="64" y="215" fill="#B7BDD4" font-size="23">Память сильна своими источниками.</text>
+  <g font-size="13" font-weight="600" letter-spacing="2" fill="#D7D9ED">
+    <text x="64" y="292">ИСТОЧНИКИ</text><text x="204" y="292">РЕВИЗИИ</text><text x="367" y="292">ГРАНИЦЫ</text>
+  </g>
+  <circle cx="179" cy="287" r="3" fill="#8B7CFF"/><circle cx="342" cy="287" r="3" fill="#9FE3CD"/>
+  <text x="64" y="370" fill="#757E9D" font-size="14">ЛОКАЛЬНО   /   БЕЗ ПРИВЯЗКИ К ФРЕЙМВОРКУ   /   ВМЕСТЕ С РЕЙН</text>
+</g>
+<g stroke="url(#line)" stroke-width="2" fill="none" opacity=".8">
+  <path d="M865 125 L1035 87 L1160 172 L1080 294 L902 322 L865 125 L1080 294 M865 125 L1160 172 M902 322 L1160 172 M1035 87 L1080 294"/>
+</g>
+<g fill="#11182A" stroke="#8B7CFF" stroke-width="2">
+  <circle cx="865" cy="125" r="16"/><circle cx="1035" cy="87" r="12"/><circle cx="1160" cy="172" r="17"/><circle cx="902" cy="322" r="12"/>
+</g>
+<circle cx="1080" cy="294" r="24" fill="#9FE3CD"/>
+<path d="M1070 294 L1077 301 L1091 286" fill="none" stroke="#14292A" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<g font-family="ui-monospace,Consolas,monospace" font-size="12" fill="#A6AFC8">
+  <text x="825" y="164">source</text><text x="1068" y="75">rev.03</text><text x="1110" y="212">evidence</text><text x="855" y="356">scope</text>
+</g>
+<rect x=".5" y=".5" width="1279" height="419" rx="24" fill="none" stroke="#262E46"/>
+</svg>
