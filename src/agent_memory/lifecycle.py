@@ -1,7 +1,7 @@
 """Explicit maintenance; retention is a status change, not physical erasure."""
 from dataclasses import dataclass, replace
 import time
-import math
+from .records import _finite_number
 from .store import Store
 
 
@@ -15,8 +15,7 @@ class Maintenance:
 def maintain(store: Store, *, namespace: str = 'default', now: float | None = None,
              dry_run: bool = True) -> Maintenance:
     clock = time.time() if now is None else now
-    if not math.isfinite(clock):
-        raise ValueError('now must be finite')
+    _finite_number(clock, 'now')
     candidates = [r for r in store.snapshot(namespace=namespace).values()
                   if r.status == 'active' and r.expires_at is not None and clock >= r.expires_at]
     applied = []

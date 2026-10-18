@@ -34,7 +34,9 @@ Use it with coding assistants, research agents, support agents, or a custom agen
 | Maintenance | Expiry dry runs and explicit retirement; deterministic consolidation proposals |
 | Integration | Source/model protocols and a read adapter for existing canonical stores |
 
-Version **0.1.1** provides an independent API for agent memory. Existing storage formats require an explicit adapter or migration. Improvements in recall or answer quality have not yet been measured.
+Candidate version **0.1.2** strengthens metadata validation, freezes model-summary parents before callbacks, and corrects provenance traversal boundaries. `summarize` now rejects retired, expired or incomplete input provenance before invoking the model. Consolidation checks prospective candidates using the same clock and traversal budgets as their parents; its default result remains a tuple of ready records. Optional `with_receipt=True` returns a `ConsolidationReceipt` with ready proposals and explicit skipped-proposal reasons, including `provenance_limit`. See the [design contract](docs/design.md) for compatibility and numeric bounds.
+
+This is a review candidate, not a published release or a runtime installation. Existing storage formats require an explicit adapter or migration. Improvements in recall, answer quality or Rain's live memory have not been established by these library integrity checks.
 
 ## Quickstart
 

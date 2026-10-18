@@ -9,11 +9,12 @@ from .store import ConflictError, FeedbackReceipt, Store
 __all__ = ['ConflictError', 'FeedbackReceipt', 'Context', 'Evidence', 'Hit', 'Maintenance', 'Model',
            'ModelOutput', 'Recall', 'Record', 'Source', 'SourceRef', 'Store',
            'context', 'derive', 'ingest', 'maintain', 'recall', 'resolve_evidence', 'summarize']
-__version__ = '0.1.1'
+__version__ = '0.1.2'
 
 from .canonical import CanonicalReadAdapter, ReadResult, SnapshotError
 __all__ += ["CanonicalReadAdapter", "ReadResult", "SnapshotError"]
-from .consolidation import propose_consolidation
+from .consolidation import ConsolidationReceipt, SkippedProposal, propose_consolidation
+__all__ += ['ConsolidationReceipt', 'SkippedProposal']
 from .extraction import classify_kind
 from .index import IndexReceipt, SearchIndex
 from .redaction import redact_secret_like

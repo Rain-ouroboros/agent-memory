@@ -8,7 +8,7 @@ import sqlite3
 import threading
 import re
 
-from .records import Record
+from .records import Record, _integer_bound
 from ._sqlite import connect
 
 
@@ -57,6 +57,7 @@ class Store:
 
     def put(self, record: Record, *, expected_revision: int | None = None) -> Record:
         expected = record.revision if expected_revision is None else expected_revision
+        _integer_bound(expected, 'expected_revision', minimum=0)
         with self._lock:
             try:
                 self._db.execute('BEGIN IMMEDIATE')
@@ -71,6 +72,8 @@ class Store:
                 self._db.rollback(); raise
 
     def get(self, record_id: str, *, namespace: str = 'default', revision: int | None = None) -> Record | None:
+        if revision is not None:
+            _integer_bound(revision, 'revision', minimum=1)
         with self._lock:
             if revision is None:
                 row = self._db.execute('SELECT payload FROM records WHERE namespace=? AND id=?', (namespace, record_id)).fetchone()

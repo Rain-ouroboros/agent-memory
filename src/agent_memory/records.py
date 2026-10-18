@@ -12,6 +12,23 @@ Trust = Literal['trusted', 'unknown', 'untrusted']
 Status = Literal['active', 'retired']
 
 
+def _finite_number(value: object, field: str) -> None:
+    if type(value) not in (int, float):
+        raise ValueError(f'{field} must be a finite number')
+    try:
+        finite = math.isfinite(value)
+    except OverflowError:
+        finite = False
+    if not finite:
+        raise ValueError(f'{field} must be a finite number')
+
+
+def _integer_bound(value: object, field: str, *, minimum: int = 0,
+                   maximum: int | None = None) -> None:
+    if type(value) is not int or value < minimum or (maximum is not None and value > maximum):
+        raise ValueError(f'{field} must be an integer within bounds')
+
+
 @dataclass(frozen=True)
 class SourceRef:
     id: str
@@ -51,13 +68,18 @@ class Record:
             raise ValueError('invalid trust')
         if self.status not in ('active', 'retired'):
             raise ValueError('invalid status')
-        if not math.isfinite(self.confidence) or not 0 <= self.confidence <= 1:
-            raise ValueError('confidence must be finite and within [0, 1]')
-        if not math.isfinite(self.created_at) or (self.expires_at is not None and not math.isfinite(self.expires_at)):
-            raise ValueError('timestamps must be finite')
-        if self.occurred_at is not None and not math.isfinite(self.occurred_at):
-            raise ValueError('occurred_at must be finite or unknown')
-        if isinstance(self.audience, str) or any(not isinstance(a, str) or not a.strip() for a in self.audience):
+        for field in ('confidence', 'created_at', 'occurred_at', 'expires_at'):
+            value = getattr(self, field)
+            if value is None and field in ('occurred_at', 'expires_at'):
+                continue
+            _finite_number(value, field)
+        if not 0 <= self.confidence <= 1:
+            raise ValueError('confidence must be within [0, 1]')
+        if not isinstance(self.audience, (list, tuple)):
+            raise ValueError('audience must be a list or tuple')
+        if not isinstance(self.sources, (list, tuple)):
+            raise ValueError('sources must be a list or tuple')
+        if any(not isinstance(a, str) or not a.strip() for a in self.audience):
             raise ValueError('audience must contain explicit non-empty identifiers')
         if '*' in self.audience and len(self.audience) != 1:
             raise ValueError('wildcard audience must stand alone')
@@ -79,9 +101,24 @@ class Record:
 
     @classmethod
     def from_dict(cls, data: dict) -> Record:
+        if not isinstance(data, dict):
+            raise ValueError('record data must be a dictionary')
         payload = dict(data)
-        payload['sources'] = tuple(SourceRef(**ref) for ref in payload.get('sources', []))
-        payload['audience'] = tuple(payload.get('audience', []))
+        sources = payload.get('sources', [])
+        audience = payload.get('audience', [])
+        if not isinstance(sources, (list, tuple)):
+            raise ValueError('sources must be a list or tuple')
+        if not isinstance(audience, (list, tuple)):
+            raise ValueError('audience must be a list or tuple')
+        refs = []
+        for ref in sources:
+            if not isinstance(ref, dict) or set(ref) != {'id', 'revision'}:
+                raise ValueError('sources must contain id/revision dictionaries')
+            if not isinstance(ref['id'], str) or not ref['id'] or type(ref['revision']) is not int or ref['revision'] < 1:
+                raise ValueError('sources contain an invalid id or revision')
+            refs.append(SourceRef(ref['id'], ref['revision']))
+        payload['sources'] = tuple(refs)
+        payload['audience'] = audience
         return cls(**payload)
 
 
@@ -107,21 +144,31 @@ class Evidence:
 def resolve_evidence(record: Record, records: dict[str, Record], *, now: float,
                      max_nodes: int = 4096, max_depth: int = 32) -> Evidence:
     """Revalidate revision-bound provenance, including every ancestor's policy."""
+    _finite_number(now, 'now')
+    _integer_bound(max_nodes, 'max_nodes', minimum=1)
+    _integer_bound(max_depth, 'max_depth')
     issues: set[str] = set()
     witnesses: set[str] = set()
     visited: set[str] = set()
+    deepest: dict[str, int] = {}
     trusts: list[str] = []
     audiences: list[tuple[str, ...]] = []
 
     def walk(node: Record, path: frozenset[str], depth: int):
         if node.id in path:
             issues.add('cycle'); return
-        if depth > max_depth or len(visited) >= max_nodes:
+        if depth > max_depth:
             issues.add('limit'); return
-        if node.id in visited:
+        if node.id not in visited:
+            if len(visited) >= max_nodes:
+                issues.add('limit'); return
+            visited.add(node.id)
+            trusts.append(node.trust); audiences.append(node.audience)
+        elif depth <= deepest[node.id]:
             return
-        visited.add(node.id)
-        trusts.append(node.trust); audiences.append(node.audience)
+        # A longer route to a shared ancestor can exceed the depth budget
+        # even when a shorter route has already validated its policy.
+        deepest[node.id] = depth
         if node.status != 'active' or (node.expires_at is not None and now >= node.expires_at):
             issues.add('inactive')
         if not node.complete:

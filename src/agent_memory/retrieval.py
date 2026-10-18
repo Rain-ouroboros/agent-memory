@@ -7,7 +7,7 @@ import math
 import time
 
 from .excerpt import query_excerpt
-from .records import Evidence, Record, resolve_evidence
+from .records import Evidence, Record, resolve_evidence, _finite_number, _integer_bound
 from .store import Store
 from .index import SearchIndex
 from .terms import content_term_patterns, required_matches
@@ -44,6 +44,7 @@ def rank(record: Record, overlap: int, now: float) -> float:
     The time constant is an e-folding period, not a statistical half-life.
     Confidence and trust are independent; neither asserts factual truth.
     """
+    _finite_number(now, 'now')
     age = max(0.0, now - record.created_at) / 86400
     period = DECAY_DAYS.get(record.kind, 365)
     return overlap + .6 * record.confidence * math.exp(-age / period) + .4 * period / (period + age)
@@ -55,11 +56,15 @@ def recall(store: Store, query: str, *, principal: str, namespace: str = 'defaul
            index: SearchIndex | None = None) -> Recall:
     if not principal or principal == '*':
         raise ValueError('principal must identify a concrete audience')
-    if limit < 0 or not 0 <= graph_depth <= 8 or graph_fanout < 1 or graph_max_nodes < 1:
-        raise ValueError('invalid recall bounds')
+    _integer_bound(limit, 'limit')
+    _integer_bound(graph_depth, 'graph_depth')
+    if graph_depth > 8:
+        raise ValueError('graph_depth must not exceed 8')
+    _integer_bound(graph_fanout, 'graph_fanout', minimum=1)
+    _integer_bound(graph_max_nodes, 'graph_max_nodes', minimum=1)
+    _integer_bound(excerpt_chars, 'excerpt_chars', minimum=1)
     clock = time.time() if now is None else now
-    if not math.isfinite(clock):
-        raise ValueError('now must be finite')
+    _finite_number(clock, 'now')
     records = store.snapshot(namespace=namespace)
     excluded: dict[str, int] = {}
     eligible: dict[str, tuple[Record, Evidence]] = {}

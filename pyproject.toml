@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "witness-agent-memory"
-version = "0.1.1"
+version = "0.1.2"
 description = "Agent memory with sources, revisions, and boundaries"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -21,3 +21,6 @@ Issues = "https://github.com/Rain-ouroboros/agent-memory/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
