@@ -78,6 +78,10 @@ New database files are created with owner-only permissions on POSIX systems. Exi
 
 This adapter does not fold an append log, authenticate the supplied audience, add missing provenance or lock an external store. Its input must be an already folded, consistent latest-revision snapshot. It is a useful seam for an existing store; it is not a storage migration by itself.
 
+## Release 0.1.3 scope
+
+Version 0.1.3 keeps the 0.1.2 integrity contract and narrows its compatibility impact. Legacy serialized boolean confidence and timestamp values are normalized to numeric 0/1 on read without rewriting stored payloads, while new records still reject bool in numeric fields. Finite int/float subclasses, mapping input to `Record.from_dict` and set/frozenset audiences are accepted. `summarize` also validates the prospective summary root against the same snapshot and traversal budgets before invoking the model. Link weights, search-index limits and context budgets use the shared numeric validators. Deserialization failures in `Store.get` and `Store.snapshot` name the stored record ID and field without forwarding rejected values. Duck-typed model outputs, `Decimal` cost and the previously tightened revision, excerpt and consolidation bounds remain rejected; traversal speed on dense graphs is unchanged.
+
 ## Release 0.1.2 scope
 
 Version 0.1.2 strengthens metadata validation, source-revision binding and evidence traversal integrity. It does not change feedback semantics, derivation identity, excerpt selection or graph ranking. These changes are a bounded integrity update, not a claim that every memory failure mode is resolved.
