@@ -57,6 +57,17 @@ def summarize(store: Store, parents: list[Record], model: Model, *,
                                     max_nodes=max_nodes, max_depth=max_depth)
         if not evidence.complete:
             raise ValueError('model inputs must have complete active provenance')
+    # Validate the prospective root, not just each parent's separate graph.
+    # Keep its temporary identity distinct from every persisted record.
+    anchor = 'summary-preflight'
+    prospective = derive('', frozen, source='model-summary', anchor=anchor)
+    while prospective.id in records:
+        anchor += ':'
+        prospective = derive('', frozen, source='model-summary', anchor=anchor)
+    evidence = resolve_evidence(prospective, records, now=clock,
+                                max_nodes=max_nodes, max_depth=max_depth)
+    if not evidence.complete:
+        raise ValueError('prospective summary must have complete active provenance within limits')
     result = model.summarize(tuple(p.text for p in frozen))
     if not isinstance(result, ModelOutput):
         raise ValueError('model result must be ModelOutput')

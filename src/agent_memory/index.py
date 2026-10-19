@@ -8,6 +8,7 @@ from pathlib import Path
 import sqlite3
 import threading
 from .store import Store
+from .records import _integer_bound
 from ._sqlite import connect
 from .terms import content_terms
 
@@ -45,7 +46,8 @@ class SearchIndex:
         return IndexReceipt(namespace, len(records), tuple(sorted((r.id, r.revision) for r in records.values())))
 
     def candidates(self, query: str, *, namespace: str = 'default', limit: int = 100) -> tuple[tuple[str, int, float], ...]:
-        if not 0 <= limit <= 10000: raise ValueError('limit must be within [0, 10000]')
+        _integer_bound(limit, 'limit')
+        if limit > 10000: raise ValueError('limit must be within [0, 10000]')
         terms = content_terms(query[:1024])[:16]
         if not terms: return ()
         # Quote every literal; user input never becomes FTS query syntax.

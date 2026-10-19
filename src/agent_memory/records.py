@@ -1,6 +1,7 @@
 """Explicit records, provenance and access policy. No agent identity is assumed."""
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import asdict, dataclass, replace
 from hashlib import sha256
 import json
@@ -13,7 +14,7 @@ Status = Literal['active', 'retired']
 
 
 def _finite_number(value: object, field: str) -> None:
-    if type(value) not in (int, float):
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise ValueError(f'{field} must be a finite number')
     try:
         finite = math.isfinite(value)
@@ -75,8 +76,8 @@ class Record:
             _finite_number(value, field)
         if not 0 <= self.confidence <= 1:
             raise ValueError('confidence must be within [0, 1]')
-        if not isinstance(self.audience, (list, tuple)):
-            raise ValueError('audience must be a list or tuple')
+        if not isinstance(self.audience, (list, tuple, set, frozenset)):
+            raise ValueError('audience must be a list, tuple, set or frozenset')
         if not isinstance(self.sources, (list, tuple)):
             raise ValueError('sources must be a list or tuple')
         if any(not isinstance(a, str) or not a.strip() for a in self.audience):
@@ -100,16 +101,21 @@ class Record:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: dict) -> Record:
-        if not isinstance(data, dict):
-            raise ValueError('record data must be a dictionary')
+    def from_dict(cls, data: Mapping) -> Record:
+        if not isinstance(data, Mapping):
+            raise ValueError('record data must be a mapping')
         payload = dict(data)
+        # Legacy serialized numeric booleans represented 0/1. New records
+        # remain strict; normalize only this explicitly supported read format.
+        for field in ('confidence', 'created_at', 'occurred_at', 'expires_at'):
+            if isinstance(payload.get(field), bool):
+                payload[field] = int(payload[field])
         sources = payload.get('sources', [])
         audience = payload.get('audience', [])
         if not isinstance(sources, (list, tuple)):
             raise ValueError('sources must be a list or tuple')
-        if not isinstance(audience, (list, tuple)):
-            raise ValueError('audience must be a list or tuple')
+        if not isinstance(audience, (list, tuple, set, frozenset)):
+            raise ValueError('audience must be a list, tuple, set or frozenset')
         refs = []
         for ref in sources:
             if not isinstance(ref, dict) or set(ref) != {'id', 'revision'}:

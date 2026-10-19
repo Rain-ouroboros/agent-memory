@@ -8,7 +8,7 @@ import sqlite3
 import threading
 import re
 
-from .records import Record, _integer_bound
+from .records import Record, _integer_bound, _finite_number
 from ._sqlite import connect
 
 
@@ -88,6 +88,7 @@ class Store:
         return {r.id: r for r in records}
 
     def link(self, record: Record, subject: str, relation: str, target: str, *, weight: float = .5):
+        _finite_number(weight, 'weight')
         if not subject.strip() or not relation.strip() or not target.strip() or not 0 < weight <= 1:
             raise ValueError('non-empty concepts and weight in (0, 1] are required')
         with self._lock:

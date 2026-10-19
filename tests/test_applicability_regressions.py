@@ -398,6 +398,11 @@ class MetadataRegressionTests(unittest.TestCase):
                 for value in (True, False, 'private-fixture-value',
                               float('nan'), float('inf'), -float('inf')):
                     with self.subTest(route=route, field=field, value_type=type(value)):
+                        if route == 'dict' and isinstance(value, bool):
+                            record = self.build(route, **{field: value})
+                            self.assertEqual(getattr(record, field), int(value))
+                            self.assertNotIsInstance(getattr(record, field), bool)
+                            continue
                         with self.assertRaises(ValueError) as caught:
                             self.build(route, **{field: value})
                         self.assertIn(field, str(caught.exception))
