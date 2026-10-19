@@ -99,6 +99,43 @@ def test_legacy_boolean_payload_remains_readable_by_consumers():
         assert store._db.execute('SELECT payload FROM records').fetchone()[0] == before
 
 
+@pytest.mark.parametrize('bad_confidence', [float('nan'), 'PRIVATE_BAD_VALUE'])
+@pytest.mark.parametrize('reader', ['get', 'history', 'snapshot', 'recall'])
+def test_corrupt_confidence_identifies_row_without_disclosing_payload(bad_confidence, reader):
+    import traceback
+
+    with Store() as store:
+        saved = store.put(Record.create('PRIVATE_RECORD_TEXT', created_at=0,
+                                        audience=('reader',)))
+        payload = saved.to_dict()
+        payload['confidence'] = bad_confidence
+        # The diagnostic must use the database key, not the payload's ID.
+        payload['id'] = 'PRIVATE_PAYLOAD_ID'
+        encoded = json.dumps(payload)
+        with store._db:
+            for table in ('records', 'history'):
+                store._db.execute(
+                    f'UPDATE {table} SET payload=? WHERE namespace=? AND id=?',
+                    (encoded, saved.namespace, saved.id))
+        with pytest.raises(ValueError) as caught:
+            if reader == 'get':
+                store.get(saved.id)
+            elif reader == 'history':
+                store.get(saved.id, revision=saved.revision)
+            elif reader == 'snapshot':
+                store.snapshot()
+            else:
+                recall(store, 'record', principal='reader', now=100)
+        assert str(caught.value) == f'record {saved.id!r}: invalid field confidence'
+        rendered = ''.join(traceback.format_exception(caught.type, caught.value,
+                                                     caught.tb))
+        for private in ('PRIVATE_RECORD_TEXT', 'PRIVATE_BAD_VALUE',
+                        'PRIVATE_PAYLOAD_ID', 'NaN'):
+            assert private not in rendered
+        assert store._db.execute('SELECT payload FROM records').fetchone()[0] == encoded
+        assert store._db.execute('SELECT payload FROM history').fetchone()[0] == encoded
+
+
 def test_numeric_subclasses_preserve_strict_boolean_boundary():
     class Count(IntEnum):
         ONE = 1

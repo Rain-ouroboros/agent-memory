@@ -79,12 +79,30 @@ class Store:
                 row = self._db.execute('SELECT payload FROM records WHERE namespace=? AND id=?', (namespace, record_id)).fetchone()
             else:
                 row = self._db.execute('SELECT payload FROM history WHERE namespace=? AND id=? AND revision=?', (namespace, record_id, revision)).fetchone()
-            return Record.from_dict(json.loads(row[0])) if row else None
+            return self._deserialize(record_id, row[0]) if row else None
+
+    @staticmethod
+    def _deserialize(record_id: str, payload: str) -> Record:
+        try:
+            return Record.from_dict(json.loads(payload))
+        except (ValueError, TypeError, KeyError) as exc:
+            # Never forward payload values, constructor keys or JSON excerpts.
+            field = 'payload'
+            if isinstance(exc, ValueError):
+                message = str(exc)
+                for name in ('confidence', 'created_at', 'occurred_at', 'expires_at',
+                             'author', 'audience', 'sources'):
+                    if message.startswith(name + ' '):
+                        field = name
+                        break
+                if message in ('invalid trust', 'invalid status', 'invalid revision'):
+                    field = message.removeprefix('invalid ')
+            raise ValueError(f'record {record_id!r}: invalid field {field}') from None
 
     def snapshot(self, *, namespace: str = 'default') -> dict[str, Record]:
         with self._lock:
-            rows = self._db.execute('SELECT payload FROM records WHERE namespace=? ORDER BY id', (namespace,)).fetchall()
-        records = [Record.from_dict(json.loads(row[0])) for row in rows]
+            rows = self._db.execute('SELECT id,payload FROM records WHERE namespace=? ORDER BY id', (namespace,)).fetchall()
+        records = [self._deserialize(row[0], row[1]) for row in rows]
         return {r.id: r for r in records}
 
     def link(self, record: Record, subject: str, relation: str, target: str, *, weight: float = .5):
