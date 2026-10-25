@@ -72,7 +72,7 @@ Version 0.1.2 checks each prospective proposal with `resolve_evidence` against t
 
 Outcomes are `helpful`, `irrelevant`, `incorrect` and `retract`. In 0.2.0, helpful/irrelevant write only the feedback ledger and return the observed evidence revision. They do not change the record, history, confidence, descendants, FTS projection or graph links. Incorrect/retract retire the record through a new lifecycle revision; that revision and its receipt commit atomically, conservatively invalidating descendants and projection entries bound to the older revision.
 
-The per-record limit is 64 nonterminal (helpful/irrelevant) receipts. A 65th new observation fails without mutation; terminal incorrect/retract remain available at capacity, subject to the existing revision and lifecycle checks. Old receipts and idempotency keys are never deleted. A feedback(namespace, record_id) index supports the lookup. Feedback remains a privileged host write and does not turn an answer-level outcome into a verdict about every retrieved memory. Correction uses a normal revision-checked `Store.put`; automatic supersession is not implemented.
+The per-record limit is 64 nonterminal (helpful/irrelevant) receipts. This is a lifetime limit per (namespace, record ID); reactivating a record does not reset its observation count. A 65th new observation fails without mutation; terminal incorrect/retract remain available at capacity, subject to the existing revision and lifecycle checks. Old receipts and idempotency keys are never deleted. A feedback(namespace, record_id) index supports the lookup. Feedback remains a privileged host write and does not turn an answer-level outcome into a verdict about every retrieved memory. Correction uses a normal revision-checked `Store.put`; automatic supersession is not implemented.
 
 New database files are created with owner-only permissions on POSIX systems. Existing file permissions are not changed. Filesystem policy, backups and encryption remain host responsibilities.
 
@@ -81,6 +81,10 @@ New database files are created with owner-only permissions on POSIX systems. Exi
 `CanonicalReadAdapter` works with host callbacks for latest canonical rows, metadata projection, revision identity, eligibility and exact-revision authorization. It materializes the snapshot to detect duplicate IDs before returning data. Unknown scopes deny. Callback errors propagate. Returned values are deep copies. Callbacks are trusted integration code, not instructions supplied by memory text.
 
 This adapter does not fold an append log, authenticate the supplied audience, add missing provenance or lock an external store. Its input must be an already folded, consistent latest-revision snapshot. It is a useful seam for an existing store; it is not a storage migration by itself.
+
+## Release 0.2.0 scope
+
+Version 0.2.0 separates usage observations from evidence revisions, permits terminal feedback at capacity, validates maintenance intent strictly, and binds new derived identities to exact source revisions. See the [release notes](release-0.2.0.md) for compatibility and deferred work. The sections below describe earlier releases.
 
 ## Release 0.1.3 scope
 
@@ -94,4 +98,4 @@ A host can integrate the canonical read adapter without adopting the library's s
 
 ## Supported surface
 
-Python 3.11+ and standard-library SQLite. Optional indexing requires FTS5 in the Python SQLite build. The core has no framework, model, network or environment-variable dependency and performs no work merely by import. Windows, macOS and Linux are CI targets. Coding and research integrations use synthetic sources; real framework certification, scale benchmarks, encryption, embedding providers, physical erasure and a lossless legacy migration are outside 0.1.2.
+Python 3.11+ and standard-library SQLite. Optional indexing requires FTS5 in the Python SQLite build. The core has no framework, model, network or environment-variable dependency and performs no work merely by import. Windows, macOS and Linux are CI targets. Coding and research integrations use synthetic sources; real framework certification, scale benchmarks, encryption, embedding providers, physical erasure and a lossless legacy migration are outside 0.2.0.
