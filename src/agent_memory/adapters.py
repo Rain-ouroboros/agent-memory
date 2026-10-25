@@ -4,11 +4,24 @@ from dataclasses import dataclass, replace
 from typing import Iterable, Protocol
 import time
 from .records import Record, derive, resolve_evidence, _finite_number, _integer_bound
-from .store import Store, ConflictError
+from .store import (
+    Store, ConflictError, IngestCheckpoint, IngestOperation,
+    _validate_ingest_identity, _validate_ingest_namespace,
+)
 
 
 class Source(Protocol):
     def records(self) -> Iterable[Record]: ...
+
+
+@dataclass(frozen=True)
+class IngestItem:
+    operation_id: str
+    record: Record
+
+
+class CheckpointSource(Protocol):
+    def records_from(self, cursor: int) -> Iterable[IngestItem]: ...
 
 
 @dataclass(frozen=True)
@@ -33,15 +46,62 @@ class IngestReceipt:
     inserted: tuple[tuple[str, int], ...]
     duplicates: tuple[tuple[str, int], ...]
     conflicts: tuple[tuple[str, int], ...]
+    checkpoint: IngestCheckpoint | None = None
+    operations: tuple[IngestOperation, ...] = ()
 
 
-def ingest_batch(store: Store, source: Source) -> IngestReceipt:
+def _ingest_checkpointed(store: Store, source: CheckpointSource, *,
+                         checkpoint: str, namespace: str) -> IngestReceipt:
+    _validate_ingest_identity(checkpoint, 'checkpoint')
+    _validate_ingest_namespace(namespace)
+    position = store.get_ingest_checkpoint(checkpoint, namespace=namespace)
+    inserted = []
+    duplicates = []
+    conflicts = []
+    operations = []
+    for item in source.records_from(position.cursor):
+        if not isinstance(item, IngestItem):
+            raise ValueError('source elements must be IngestItem instances')
+        if not isinstance(item.record, Record):
+            raise ValueError('item record must be a Record instance')
+        _validate_ingest_identity(item.operation_id, 'operation_id')
+        if item.record.namespace != namespace:
+            raise ValueError('item record namespace must match namespace')
+        operation = store._ingest_item(
+            item.record, operation_id=item.operation_id, checkpoint=position,
+        )
+        position = replace(position, cursor=position.cursor + 1)
+        operations.append(operation)
+        pair = (operation.record_id, operation.revision)
+        if operation.outcome == 'conflict':
+            conflicts.append(pair)
+        elif operation.replayed or operation.outcome == 'duplicate':
+            duplicates.append(pair)
+        else:
+            inserted.append(pair)
+    return IngestReceipt(tuple(inserted), tuple(duplicates), tuple(conflicts),
+                         position, tuple(operations))
+
+
+def ingest_batch(store: Store, source: Source | CheckpointSource, *,
+                 checkpoint: str | None = None,
+                 namespace: str | None = None) -> IngestReceipt:
     """Insert independently, reporting duplicates and conflicts without updates.
 
     Comparison ignores only revision and created_at. Receipt entries preserve
     source order and occurrences within each category. Source exceptions escape;
     earlier writes remain committed, but no receipt is returned in that case.
+
+    With a checkpoint, acknowledge ordered source positions atomically with
+    durable operation outcomes. Source callbacks run outside store locks.
     """
+    if checkpoint is not None:
+        return _ingest_checkpointed(
+            store, source, checkpoint=checkpoint,
+            namespace='default' if namespace is None else namespace,
+        )
+    if namespace is not None:
+        raise ValueError('namespace requires checkpoint')
     inserted = []
     duplicates = []
     conflicts = []

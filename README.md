@@ -34,7 +34,9 @@ Use it with coding assistants, research agents, support agents, or a custom agen
 | Maintenance | Expiry dry runs and explicit retirement; deterministic consolidation proposals |
 | Integration | Source/model protocols and a read adapter for existing canonical stores |
 
-Version **0.2.1** adds insert-only `ingest_batch` receipts and `Maintenance.conflicted` reporting so classified conflicts do not stop remaining records. Automatic source resumption remains deferred; see the [0.2.1 release notes](docs/release-0.2.1.md).
+Version **0.2.2** adds opt-in resumable ingestion with durable source cursors and per-item operation fingerprints. Each cursor advance commits atomically with its operation outcome and any canonical insertion; reusing an operation ID with different semantic input raises an explicit conflict. Legacy ingestion behavior and maintenance scope remain unchanged. See the [0.2.2 release notes](docs/release-0.2.2.md).
+
+Version **0.2.1** added insert-only `ingest_batch` receipts and `Maintenance.conflicted` reporting so classified conflicts do not stop remaining records. Source resumption was deferred in that release; see the [0.2.1 release notes](docs/release-0.2.1.md).
 
 Version **0.2.0** adds memory-integrity fixes: helpful/irrelevant feedback writes only the ledger, leaving evidence revisions and retrieval projections unchanged; the 64-observation cap does not block terminal incorrect/retract feedback. Maintenance requires a strict boolean `dry_run`. New derived IDs bind full text and exact parent revisions using a versioned structured identity. Existing IDs, source references and historical feedback receipts remain readable and unchanged. See the [0.2.0 release notes](docs/release-0.2.0.md).
 
@@ -47,7 +49,7 @@ Existing storage formats require an explicit adapter or migration. A host can in
 Python 3.11 or newer. No runtime dependencies. Install from the repository; this distribution is not published to PyPI.
 
 ```bash
-python -m pip install "git+https://github.com/Rain-ouroboros/agent-memory.git@v0.2.1"
+python -m pip install "git+https://github.com/Rain-ouroboros/agent-memory.git@v0.2.2"
 ```
 
 ```python
@@ -154,6 +156,12 @@ The default budget counts Unicode characters. Reserve room for the rest of your 
 | `propose_consolidation(store, now=...)` | Suggest near-duplicate derived memories for host review |
 | `Store.feedback(..., operation_id=..., expected_revision=...)` | Apply idempotent feedback or retract a specific revision |
 | `ingest_batch(store, source)` | Insert records without overwriting; return inserted, duplicate and conflict revision receipts |
+| `ingest_batch(store, source, checkpoint=..., namespace=...)` | Resume an ordered feed with atomic per-item outcomes and cursor advances |
+| `CheckpointSource.records_from(cursor)` / `IngestItem(operation_id, record)` | Supply the uncommitted suffix with stable operation IDs |
+| `Store.get_ingest_checkpoint(name, namespace=...)` | Read the acknowledged position; a missing checkpoint has cursor zero |
+| `Store.get_ingest_operation(operation_id, namespace=...)` | Read the durable original outcome, or return `None` |
+| `IngestReceipt.checkpoint` / `IngestReceipt.operations` | Report this call's last acknowledged cursor and ordered per-item outcomes, including replays |
+| `CheckpointConflictError` / `OperationConflictError` | Report a stale cursor or an operation ID reused with different semantic input; no automatic retry |
 | `maintain(store, dry_run=True)` | Inspect expiry; optionally retire expired records |
 | `Maintenance.conflicted` | Report skipped retirement conflicts as (ID, snapshot revision) pairs |
 | `CanonicalReadAdapter(...).select(...)` | Read an existing store through host-supplied policy |

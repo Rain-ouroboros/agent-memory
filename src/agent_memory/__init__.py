@@ -10,7 +10,12 @@ __all__ = ['ConflictError', 'FeedbackReceipt', 'Context', 'Evidence', 'Hit', 'Ma
            'ModelOutput', 'Recall', 'Record', 'Source', 'SourceRef', 'Store',
            'context', 'derive', 'ingest', 'ingest_batch', 'IngestReceipt',
            'maintain', 'recall', 'resolve_evidence', 'summarize']
-__version__ = '0.2.1'
+from .adapters import CheckpointSource, IngestItem
+from .store import (CheckpointConflictError, OperationConflictError,
+                    IngestCheckpoint, IngestOperation)
+__all__ += ['CheckpointSource', 'IngestItem', 'CheckpointConflictError',
+            'OperationConflictError', 'IngestCheckpoint', 'IngestOperation']
+__version__ = '0.2.2'
 
 from .canonical import CanonicalReadAdapter, ReadResult, SnapshotError
 __all__ += ["CanonicalReadAdapter", "ReadResult", "SnapshotError"]
