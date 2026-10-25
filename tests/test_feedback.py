@@ -28,7 +28,12 @@ class FeedbackTests(unittest.TestCase):
     def test_helpful_does_not_raise_confidence_and_stale_feedback_fails(self):
         with Store() as store:
             record = store.put(Record.create('Atlas', confidence=.4))
-            store.feedback(record.id, expected_revision=1, operation_id='first', outcome='helpful')
+            receipt = store.feedback(record.id, expected_revision=1, operation_id='first', outcome='helpful')
+            # L1: observations record evidence without changing its revision.
+            self.assertEqual(receipt.revision, 1)
+            self.assertEqual(store.get(record.id), record)
+            self.assertIsNone(store.get(record.id, revision=2))
+            store.put(replace(record, text='Atlas updated'))
             self.assertEqual(store.get(record.id).confidence, .4)
             with self.assertRaises(ConflictError):
                 store.feedback(record.id, expected_revision=1, operation_id='stale', outcome='incorrect')
@@ -38,12 +43,15 @@ class FeedbackTests(unittest.TestCase):
         with Store() as store:
             record = store.put(Record.create('Atlas'))
             for n in range(64):
-                store.feedback(record.id, expected_revision=n+1, operation_id=f'op{n}', outcome='irrelevant')
+                receipt = store.feedback(record.id, expected_revision=1, operation_id=f'op{n}', outcome='irrelevant')
+                self.assertEqual(receipt.revision, 1)
             with self.assertRaises(ValueError):
-                store.feedback(record.id, expected_revision=65, operation_id='overflow', outcome='helpful')
+                store.feedback(record.id, expected_revision=1, operation_id='overflow', outcome='helpful')
             replay = store.feedback(record.id, expected_revision=1, operation_id='op0', outcome='irrelevant')
             self.assertTrue(replay.duplicate)
-            self.assertEqual(store.get(record.id).revision, 65)
+            # L1: receipt capacity is independent of evidence revisions.
+            self.assertEqual(store.get(record.id), record)
+            self.assertIsNone(store.get(record.id, revision=2))
 
     @unittest.skipUnless(os.name == 'posix', 'POSIX file permission check')
     def test_new_database_is_owner_only(self):

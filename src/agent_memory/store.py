@@ -40,6 +40,7 @@ class Store:
                 self._db.execute('CREATE TABLE IF NOT EXISTS history (namespace TEXT NOT NULL, id TEXT NOT NULL, revision INTEGER NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(namespace,id,revision))')
                 self._db.execute('CREATE TABLE IF NOT EXISTS edges (namespace TEXT NOT NULL, source TEXT NOT NULL, relation TEXT NOT NULL, target TEXT NOT NULL, record_id TEXT NOT NULL, revision INTEGER NOT NULL, weight REAL NOT NULL, PRIMARY KEY(namespace,source,relation,target,record_id), FOREIGN KEY(namespace,record_id) REFERENCES records(namespace,id))')
                 self._db.execute('CREATE TABLE IF NOT EXISTS feedback (namespace TEXT NOT NULL, operation_id TEXT NOT NULL, record_id TEXT NOT NULL, command TEXT NOT NULL, outcome TEXT NOT NULL, revision INTEGER NOT NULL, PRIMARY KEY(namespace,operation_id))')
+                self._db.execute('CREATE INDEX IF NOT EXISTS feedback_record_idx ON feedback(namespace,record_id)')
                 self._db.execute('PRAGMA user_version = 1')
         except BaseException:
             self._db.close()
@@ -158,11 +159,14 @@ class Store:
                     raise ConflictError('feedback target changed or is missing')
                 if record.status != 'active':
                     raise ValueError('feedback requires an active record')
-                count = self._db.execute('SELECT count(*) FROM feedback WHERE namespace=? AND record_id=?', (namespace, record_id)).fetchone()[0]
-                if count >= 64:
-                    raise ValueError('feedback receipt capacity reached')
-                changed = replace(record, status='retired') if outcome in {'incorrect', 'retract'} else record
-                saved = self._write(changed, record.revision + 1)
+                terminal = outcome in {'incorrect', 'retract'}
+                if not terminal:
+                    count = self._db.execute("SELECT count(*) FROM feedback WHERE namespace=? AND record_id=? AND outcome IN ('helpful', 'irrelevant')", (namespace, record_id)).fetchone()[0]
+                    if count >= 64:
+                        raise ValueError('feedback receipt capacity reached')
+                # Observations belong only in the ledger: evidence, history and
+                # revision-bound descendants/edges must remain unchanged.
+                saved = self._write(replace(record, status='retired'), record.revision + 1) if terminal else record
                 self._db.execute('INSERT INTO feedback VALUES (?,?,?,?,?,?)', (namespace, operation_id, record_id, command, outcome, saved.revision))
                 self._db.commit()
                 return FeedbackReceipt(record_id, operation_id, outcome, saved.revision, False)

@@ -92,10 +92,22 @@ class Record:
     @classmethod
     def create(cls, text: str, *, namespace: str = 'default', source: str = 'manual',
                anchor: str = '', **kwargs) -> Record:
-        # Full content, including a late suffix, participates in the identity.
+        # Preserve primary identities and validate provenance before hashing it.
         identity = json.dumps([namespace, source, anchor, text], ensure_ascii=False)
-        return cls(id=sha256(identity.encode()).hexdigest(), text=text,
-                   namespace=namespace, source=source, created_at=kwargs.pop('created_at', time.time()), **kwargs)
+        record = cls(id=sha256(identity.encode()).hexdigest(), text=text,
+                     namespace=namespace, source=source,
+                     created_at=kwargs.pop('created_at', time.time()), **kwargs)
+        if record.derived:
+            identity = json.dumps({
+                'schema': 'agent-memory-derived-v1',
+                'namespace': record.namespace,
+                'source': record.source,
+                'anchor': anchor,
+                'text': record.text,
+                'parents': sorted({(ref.id, ref.revision) for ref in record.sources}),
+            }, ensure_ascii=False, sort_keys=True, separators=(',', ':'))
+            record = replace(record, id=sha256(identity.encode()).hexdigest())
+        return record
 
     def to_dict(self) -> dict:
         return asdict(self)

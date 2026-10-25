@@ -14,6 +14,8 @@ class Maintenance:
 
 def maintain(store: Store, *, namespace: str = 'default', now: float | None = None,
              dry_run: bool = True) -> Maintenance:
+    if type(dry_run) is not bool:
+        raise ValueError('dry_run must be a boolean')
     clock = time.time() if now is None else now
     _finite_number(clock, 'now')
     candidates = [r for r in store.snapshot(namespace=namespace).values()
