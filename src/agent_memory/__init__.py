@@ -1,5 +1,5 @@
 """Witness Memory: agent memory with sources, revisions and boundaries."""
-from .adapters import Model, ModelOutput, Source, ingest, summarize
+from .adapters import IngestReceipt, Model, ModelOutput, Source, ingest, ingest_batch, summarize
 from .context import Context, context
 from .lifecycle import Maintenance, maintain
 from .records import Evidence, Record, SourceRef, derive, resolve_evidence
@@ -8,8 +8,9 @@ from .store import ConflictError, FeedbackReceipt, Store
 
 __all__ = ['ConflictError', 'FeedbackReceipt', 'Context', 'Evidence', 'Hit', 'Maintenance', 'Model',
            'ModelOutput', 'Recall', 'Record', 'Source', 'SourceRef', 'Store',
-           'context', 'derive', 'ingest', 'maintain', 'recall', 'resolve_evidence', 'summarize']
-__version__ = '0.2.0'
+           'context', 'derive', 'ingest', 'ingest_batch', 'IngestReceipt',
+           'maintain', 'recall', 'resolve_evidence', 'summarize']
+__version__ = '0.2.1'
 
 from .canonical import CanonicalReadAdapter, ReadResult, SnapshotError
 __all__ += ["CanonicalReadAdapter", "ReadResult", "SnapshotError"]

@@ -1,10 +1,10 @@
 """Host integration protocols; providers and network activity are never implicit."""
 from __future__ import annotations
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Iterable, Protocol
 import time
 from .records import Record, derive, resolve_evidence, _finite_number, _integer_bound
-from .store import Store
+from .store import Store, ConflictError
 
 
 class Source(Protocol):
@@ -28,13 +28,47 @@ def ingest(store: Store, source: Source) -> tuple[Record, ...]:
     return tuple(store.put(record) for record in source.records())
 
 
+@dataclass(frozen=True)
+class IngestReceipt:
+    inserted: tuple[tuple[str, int], ...]
+    duplicates: tuple[tuple[str, int], ...]
+    conflicts: tuple[tuple[str, int], ...]
+
+
+def ingest_batch(store: Store, source: Source) -> IngestReceipt:
+    """Insert independently, reporting duplicates and conflicts without updates.
+
+    Comparison ignores only revision and created_at. Receipt entries preserve
+    source order and occurrences within each category. Source exceptions escape;
+    earlier writes remain committed, but no receipt is returned in that case.
+    """
+    inserted = []
+    duplicates = []
+    conflicts = []
+    for record in source.records():
+        if not isinstance(record, Record):
+            raise ValueError('source elements must be Record instances')
+        try:
+            saved = store.put(record, expected_revision=0)
+        except ConflictError:
+            current = store.get(record.id, namespace=record.namespace)
+            if current is None:
+                raise
+            identical = (replace(current, revision=0, created_at=0)
+                         == replace(record, revision=0, created_at=0))
+            target = duplicates if identical else conflicts
+            target.append((current.id, current.revision))
+        else:
+            inserted.append((saved.id, saved.revision))
+    return IngestReceipt(tuple(inserted), tuple(duplicates), tuple(conflicts))
+
+
 def summarize(store: Store, parents: list[Record], model: Model, *,
               now: float | None = None, max_nodes: int = 4096,
               max_depth: int = 32) -> tuple[Record, ModelOutput]:
     """Explicit invocation on a fixed snapshot of eligible persisted parents.
 
-    Version 0.1.2 rejects inactive, expired or incomplete provenance before
-    calling the model. No store lock spans the callback. The returned candidate
+    Rejects inactive, expired or incomplete provenance before calling the model. No store lock spans the callback. The returned candidate
     is not persisted; its exact source revisions must be revalidated before use.
     A caller owns consent, credentials and budget.
     """

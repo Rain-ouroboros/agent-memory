@@ -16,7 +16,11 @@ Persisted IDs and SourceRefs are not recomputed or rewritten when reading existi
 
 `Store.put` compares the expected revision inside `BEGIN IMMEDIATE`. New records expect zero. The default expected revision is `record.revision`. A mismatch raises `ConflictError`; it is never silently merged. Each successful write updates the current row and appends its immutable historical revision in the same SQLite transaction. Independent connections use SQLite's locking with a five-second busy timeout by default. Hosts can configure `Store(path, timeout=...)` and `SearchIndex(path, timeout=...)` in seconds; zero means fail immediately on contention. Busy timeout errors propagate without losing already committed records. The concurrent-write test uses a 30-second deadline to accommodate slow hosted Windows disks. Operational and corruption errors propagate.
 
-The database schema version is 1. Unknown schema versions fail explicitly. There is no automatic schema migration or agent-specific backup importer. An ingestion batch and a maintenance run consist of individual atomic record writes; failures can leave earlier successful writes in place.
+The database schema version is 1. Unknown schema versions fail explicitly. There is no automatic schema migration or agent-specific backup importer. Ingestion and maintenance use individual atomic record writes, not an all-or-nothing batch transaction; failures can leave earlier successful writes in place.
+
+Legacy `ingest` retains its fail-fast behavior. `ingest_batch` attempts one insert-only `Store.put(record, expected_revision=0)` per source element, including inputs with a nonzero revision. This explicit expectation prevents such inputs from updating existing records. After `ConflictError`, it reads the current record in the input namespace and compares the records with only `revision` and `created_at` normalized to zero. Equal records are duplicates; any other difference, including trust or audience, is a conflict. Neither category writes or alters the persisted timestamp or revision. If the current record cannot be found, the original conflict propagates.
+
+The frozen `IngestReceipt` contains `inserted`, `duplicates` and `conflicts`, each a tuple of (ID, revision) pairs. Inserted entries identify newly written revisions; duplicate and conflict entries identify the current revision observed after the failed insertion. Entries preserve source order and repeated occurrences within each category, not a deduplicated set. The receipt is not a lease against later concurrent changes. Processing continues after classified duplicates and conflicts. A non-Record element raises `ValueError`; source iterator and other storage exceptions propagate. A receipt is returned only after source exhaustion, with earlier successful writes remaining committed if iteration fails. No transaction spans source iteration, and the library introduces no model or network calls.
 
 ## Evidence and permissions
 
@@ -58,7 +62,7 @@ After preflight, `summarize` invokes the supplied model once without holding the
 
 ## Maintenance
 
-`maintain` inspects expired active records; dry run is the default. In 0.2.0, `type(dry_run) is bool` is required: any other value raises `ValueError` before reading a snapshot or writing records. `True` preserves inspection-only behavior; `False` retires each candidate through revision-checked writes. A conflict raises an error. Retirement and history retention are not physical erasure.
+`maintain` inspects expired active records; dry run is the default. `type(dry_run) is bool` is required: any other value raises `ValueError` before reading a snapshot or writing records. `True` preserves inspection-only behavior and returns an empty `conflicted` tuple. `False` retires each candidate through revision-checked writes. A `ConflictError` leaves the newer record untouched, adds (ID, snapshot revision) to `Maintenance.conflicted`, and allows the remaining candidates to proceed. `applied` reports successful retirement revisions. A still-expired conflicting record can be retired by a later run using a fresh snapshot. Other exceptions propagate; earlier successful writes remain committed, but no receipt is returned on such an exception. Retirement and history retention are not physical erasure.
 
 `propose_consolidation` adapts deterministic same-kind greedy Jaccard clustering (threshold 0.7). It considers complete, trusted, derived records, partitions them by effective audience, and returns unpersisted source-bound proposals. Primary speech and already consolidated records are excluded. At most 500 eligible candidates are processed by default; exceeding the cap raises rather than silently truncating. The algorithm can mistake negated sentences for duplicates. Host review is required; no source is automatically removed or retired, and confidence is not increased.
 
@@ -81,6 +85,10 @@ New database files are created with owner-only permissions on POSIX systems. Exi
 `CanonicalReadAdapter` works with host callbacks for latest canonical rows, metadata projection, revision identity, eligibility and exact-revision authorization. It materializes the snapshot to detect duplicate IDs before returning data. Unknown scopes deny. Callback errors propagate. Returned values are deep copies. Callbacks are trusted integration code, not instructions supplied by memory text.
 
 This adapter does not fold an append log, authenticate the supplied audience, add missing provenance or lock an external store. Its input must be an already folded, consistent latest-revision snapshot. It is a useful seam for an existing store; it is not a storage migration by itself.
+
+## Release 0.2.1 scope
+
+Version 0.2.1 adds insert-only `ingest_batch` receipts, reports maintenance CAS conflicts without aborting the remaining candidates, and removes an obsolete version reference from the `summarize` docstring. Legacy `ingest` remains fail-fast. Durable operation IDs, source cursors, automatic recovery after interruption within source iteration, all-or-nothing small batches and bounded maintenance pages remain deferred. These changes do not establish recall quality or scalability. See the [release notes](release-0.2.1.md).
 
 ## Release 0.2.0 scope
 
