@@ -95,6 +95,11 @@ class RestartReceiptTests(unittest.TestCase):
         self.assertEqual(receipt.duplicates, ((self.x.id, 1),))
         self.assertEqual(receipt.inserted, ((self.y.id, 1),))
 
+    def test_unsaved_id_with_nonzero_revision_is_inserted_as_first_revision(self):
+        receipt = ingest_batch(self.store, Source([replace(self.x, revision=7)]))
+        self.assertEqual(receipt, IngestReceipt(((self.x.id, 1),), (), ()))
+        self.assertEqual(self.store.get(self.x.id).revision, 1)
+
     def test_legacy_ingest_still_stops_at_first_duplicate(self):
         with self.assertRaises(ConflictError):
             ingest(self.store, Source([self.x, self.x, self.y]))

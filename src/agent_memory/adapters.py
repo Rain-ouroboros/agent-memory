@@ -68,8 +68,9 @@ def summarize(store: Store, parents: list[Record], model: Model, *,
               max_depth: int = 32) -> tuple[Record, ModelOutput]:
     """Explicit invocation on a fixed snapshot of eligible persisted parents.
 
-    Rejects inactive, expired or incomplete provenance before calling the model. No store lock spans the callback. The returned candidate
-    is not persisted; its exact source revisions must be revalidated before use.
+    Inactive, expired or incomplete provenance is rejected before calling the
+    model. No store lock spans the callback. The returned candidate is not
+    persisted; its exact source revisions must be revalidated before use.
     A caller owns consent, credentials and budget.
     """
     clock = time.time() if now is None else now
